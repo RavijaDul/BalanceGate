@@ -3,12 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   BalanceGate
 
-  Sample SAM Template for BalanceGate
+  BalanceGate – Serverless Wallet API
   
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 10
 
 Resources:
   WalletFunction:
@@ -19,23 +19,24 @@ Resources:
       Runtime: nodejs20.x
       Architectures:
         - x86_64
-      policies:
+      Policies:
         - DynamoDBCrudPolicy:
             TableName: WalletsTable
       Environment:
         Variables:
-          TABLE_NAME: WalletsTable
+          WALLET_TABLE: WalletsTable
       Events:
         createWallet:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /wallet
-            Method: post
-          getWallet:
+            Method: POST
+
+        getWallet:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /wallet/{walletId}
-            Method: get
+            Method: GET
   WalletsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
