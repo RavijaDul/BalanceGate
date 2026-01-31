@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  BalanceGate
+
+  Sample SAM Template for BalanceGate
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  WalletFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/
+      Handler: app.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      policies:
+        - DynamoDBCrudPolicy:
+            TableName: WalletsTable
+      Environment:
+        Variables:
+          TABLE_NAME: WalletsTable
+      Events:
+        createWallet:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /wallet
+            Method: post
+          getWallet:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /wallet/{walletId}
+            Method: get
+  WalletsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: WalletsTable
+      PrimaryKey:
+        Name: walletId
+        Type: String
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  WalletApi:
+    Description: "API Gateway endpoint URL for Prod stage for Wallet function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/wallet/"
+  WalletFunction:
+    Description: "Wallet Lambda Function ARN"
+    Value: !GetAtt WalletFunction.Arn
+  WalletFunctionIamRole:
+    Description: "Implicit IAM Role created for Wallet function"
+    Value: !GetAtt WalletFunctionRole.Arn
