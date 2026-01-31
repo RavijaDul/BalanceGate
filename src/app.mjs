@@ -11,20 +11,19 @@
  * 
  */
 import { v4 as uuidv4 } from "uuid";
-import { DynamoDBClient, PutItemCommand, GetItemCommand, } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  GetItemCommand,
+} from "@aws-sdk/client-dynamodb";
 
 const dbClient = new DynamoDBClient({});
 
-/**
- * BalanceGate – Wallet Creation Lambda
- */
 export const lambdaHandler = async (event) => {
   console.log("Incoming request:", JSON.stringify(event));
 
-  // HTTP method from API Gateway
-  //const method = event.requestContext?.http?.method;
   const method = event.httpMethod;
-  
+
   // CREATE WALLET
   if (method === "POST") {
     const wallet = {
@@ -34,18 +33,18 @@ export const lambdaHandler = async (event) => {
       createdAt: new Date().toISOString(),
     };
 
-    const params = {
-      TableName: process.env.WALLET_TABLE,
-      Item: {
-        walletId: { S: wallet.walletId },
-        balance: { N: wallet.balance.toString() },
-        currency: { S: wallet.currency },
-        createdAt: { S: wallet.createdAt },
-      },
-    };
-
     try {
-      await dbClient.send(new PutItemCommand(params));
+      await dbClient.send(
+        new PutItemCommand({
+          TableName: process.env.WALLET_TABLE,
+          Item: {
+            walletId: { S: wallet.walletId },
+            balance: { N: "0" },
+            currency: { S: "USD" },
+            createdAt: { S: wallet.createdAt },
+          },
+        })
+      );
     } catch (error) {
       console.error("DynamoDB error:", error);
       return {
@@ -53,8 +52,14 @@ export const lambdaHandler = async (event) => {
         body: JSON.stringify({ message: "Failed to create wallet" }),
       };
     }
+
+    return {
+      statusCode: 201,
+      body: JSON.stringify(wallet),
+    };
   }
-    // GET WALLET
+
+  // GET WALLET
   if (method === "GET") {
     const walletId = event.pathParameters?.walletId;
 
@@ -99,6 +104,7 @@ export const lambdaHandler = async (event) => {
     body: JSON.stringify({ message: "Method Not Allowed" }),
   };
 };
+
 
 // export const lambdaHandler = async (event, context) => {
 //     const response = {
