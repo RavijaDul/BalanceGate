@@ -17,15 +17,37 @@ import {
   DynamoDBClient,
   PutItemCommand,
   GetItemCommand,
+  UpdateItemCommand,
+  ScanCommand,
 } from "@aws-sdk/client-dynamodb";
+
+import jwt from "jsonwebtoken";
 
 const dbClient = new DynamoDBClient({});
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type,x-api-key",
+  "Access-Control-Allow-Headers": "Content-Type,x-api-key,Authorization",
   "Access-Control-Allow-Methods": "OPTIONS,GET,POST",
 };
 
+function verifyJwt(event) {
+  const authHeader =
+    event.headers?.authorization || event.headers?.Authorization;
+
+  if (!authHeader) {
+    throw new Error("Missing Authorization header");
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const decoded = jwt.decode(token);
+  
+
+  if (!decoded || !decoded.sub) {
+    throw new Error("Invalid token");
+  }
+
+  return decoded; // contains user id, email, etc.
+}
 
 export const lambdaHandler = async (event) => {
   console.log("Incoming request:", JSON.stringify(event));
@@ -39,12 +61,99 @@ export const lambdaHandler = async (event) => {
       body: "",
     };
   }
+  let user;
+
+  try {
+    user = verifyJwt(event);
+  } catch (err) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ message: "Unauthorized" }),
+    };
+  }
+  const body = JSON.parse(event.body || "{}");
+  // CREDIT / DEBIT WALLET
+  if ( method === "POST" && event.resource === "/wallet/{walletId}/transaction") {
+    const walletId = event.pathParameters.walletId;
+    const { amount } = body;
+
+    if (typeof amount !== "number") {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ message: "Amount must be a number" }),
+      };
+    }
+
+    const walletRes = await dbClient.send(
+      new GetItemCommand({
+        TableName: process.env.WALLET_TABLE,
+        Key: { walletId: { S: walletId } },
+      })
+    );
+
+    if (!walletRes.Item || walletRes.Item.userId.S !== user.sub) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ message: "Forbidden" }),
+      };
+    }
+
+    const currentBalance = Number(walletRes.Item.balance.N);
+    const newBalance = currentBalance + amount;
+
+    // Check if the transaction would result in negative balance
+    if (newBalance < 0) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ message: "Insufficient balance" }),
+      };
+    }
+
+    try {
+      const result = await dbClient.send(
+        new UpdateItemCommand({
+          TableName: process.env.WALLET_TABLE,
+          Key: { walletId: { S: walletId } },
+          UpdateExpression: "SET balance = :newBalance",
+          ExpressionAttributeValues: {
+            ":newBalance": { N: newBalance.toString() },
+          },
+          ReturnValues: "UPDATED_NEW",
+        })
+      );
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          balance: Number(result.Attributes.balance.N),
+        }),
+      };
+    } catch (err) {
+      console.error("Transaction error:", err);
+      
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ 
+          message: "Transaction failed", 
+          error: err.message 
+        }),
+      };
+    }
+  }
+
   // CREATE WALLET
   if (method === "POST") {
     const wallet = {
       walletId: uuidv4(),
+      name: body.name || "Unnamed Wallet",
       balance: 0,
-      currency: "USD",
+      currency: body.currency || "USD",
       createdAt: new Date().toISOString(),
     };
 
@@ -54,10 +163,12 @@ export const lambdaHandler = async (event) => {
           TableName: process.env.WALLET_TABLE,
           Item: {
             walletId: { S: wallet.walletId },
+            userId: { S: user.sub },
+            name: { S: wallet.name },
             balance: { N: "0" },
-            currency: { S: "USD" },
+            currency: { S: wallet.currency },
             createdAt: { S: wallet.createdAt },
-          },
+          }
         })
       );
     } catch (error) {
@@ -73,6 +184,33 @@ export const lambdaHandler = async (event) => {
       statusCode: 201,
       headers: corsHeaders,
       body: JSON.stringify(wallet),
+    };
+  }
+
+  // LIST MY WALLETS
+  if (method === "GET" && event.path === "/wallets") {
+    const result = await dbClient.send(
+      new ScanCommand({
+        TableName: process.env.WALLET_TABLE,
+        FilterExpression: "userId = :uid",
+        ExpressionAttributeValues: {
+          ":uid": { S: user.sub },
+        },
+      })
+    );
+
+    const wallets = (result.Items || []).map((item) => ({
+      walletId: item.walletId.S,
+      name: item.name?.S || "Unnamed Wallet",
+      balance: Number(item.balance.N),
+      currency: item.currency.S,
+      createdAt: item.createdAt.S,
+    }));
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify(wallets),
     };
   }
 
@@ -104,7 +242,13 @@ export const lambdaHandler = async (event) => {
         body: JSON.stringify({ message: "Wallet not found" }),
       };
     }
-
+    if (result.Item.userId.S !== user.sub) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ message: "Forbidden" }),
+      };
+    }
     const wallet = {
       walletId: result.Item.walletId.S,
       balance: Number(result.Item.balance.N),
