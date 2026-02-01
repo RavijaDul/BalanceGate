@@ -22,9 +22,10 @@ import {
 const dbClient = new DynamoDBClient({});
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type,x-api-key",
   "Access-Control-Allow-Methods": "OPTIONS,GET,POST",
 };
+
 
 export const lambdaHandler = async (event) => {
   console.log("Incoming request:", JSON.stringify(event));

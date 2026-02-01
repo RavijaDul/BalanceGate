@@ -9,7 +9,9 @@ Description: >
 Globals:
   Function:
     Timeout: 10
-
+  Api:
+    Auth:
+      ApiKeyRequired: true
 Resources:
   WalletFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -31,12 +33,34 @@ Resources:
           Properties:
             Path: /wallet
             Method: POST
+            Auth:
+              ApiKeyRequired: true
 
         getWallet:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /wallet/{walletId}
             Method: GET
+            Auth:
+              ApiKeyRequired: true
+
+        walletOptions:
+          Type: Api
+          Properties:
+            Path: /wallet
+            Method: OPTIONS
+            Auth:
+              ApiKeyRequired: false
+
+        walletIdOptions:
+          Type: Api
+          Properties:
+            Path: /wallet/{walletId}
+            Method: OPTIONS
+            Auth:
+              ApiKeyRequired: false
+
+
   WalletsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -44,6 +68,31 @@ Resources:
       PrimaryKey:
         Name: walletId
         Type: String
+
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: BalanceGateApiKey
+      Enabled: true
+
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: BalanceGateUsagePlan
+      ApiStages:
+        - ApiId: !Ref ServerlessRestApi
+          Stage: Prod
+      Throttle:
+        RateLimit: 10
+        BurstLimit: 2
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM

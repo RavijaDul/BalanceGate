@@ -4,6 +4,7 @@ import { useState } from "react";
 
 const API_BASE =
   "https://tvinofjk5j.execute-api.ap-south-1.amazonaws.com/Prod";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 type Wallet = {
   walletId: string;
@@ -23,8 +24,14 @@ export default function Home() {
     setError("");
     setWallet(null);
 
+    if (!API_KEY) {
+      throw new Error("NEXT_PUBLIC_API_KEY is not set");
+    }
+    
     try {
-      const res = await fetch(`${API_BASE}/wallet`, { method: "POST" });
+
+
+      const res = await fetch(`${API_BASE}/wallet`, { method: "POST" ,headers: {"x-api-key": API_KEY!}});
       const data = await res.json();
 
       setWallet(data);
@@ -44,7 +51,12 @@ export default function Home() {
     setWallet(null);
 
     try {
-      const res = await fetch(`${API_BASE}/wallet/${walletId}`);
+      const res = await fetch(`${API_BASE}/wallet/${walletId}`, {
+          headers: {
+            "x-api-key": API_KEY!,
+          },
+        });
+
       const data = await res.json();
 
       if (res.ok) {
