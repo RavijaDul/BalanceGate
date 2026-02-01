@@ -9,6 +9,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.980.0",
     "axios": ">=1.6.0",
+    "jsonwebtoken": "^9.0.3",
     "uuid": "^13.0.0"
   },
   "scripts": {
