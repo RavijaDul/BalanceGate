@@ -10,6 +10,8 @@
  * @returns {Object} object - API Gateway Lambda Proxy Output Format
  * 
  */
+
+
 import { v4 as uuidv4 } from "uuid";
 import {
   DynamoDBClient,
@@ -18,12 +20,24 @@ import {
 } from "@aws-sdk/client-dynamodb";
 
 const dbClient = new DynamoDBClient({});
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "OPTIONS,GET,POST",
+};
 
 export const lambdaHandler = async (event) => {
   console.log("Incoming request:", JSON.stringify(event));
 
   const method = event.httpMethod;
-
+  // HANDLE CORS PRE-FLIGHT
+  if (method === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: "",
+    };
+  }
   // CREATE WALLET
   if (method === "POST") {
     const wallet = {
@@ -49,12 +63,14 @@ export const lambdaHandler = async (event) => {
       console.error("DynamoDB error:", error);
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({ message: "Failed to create wallet" }),
       };
     }
 
     return {
       statusCode: 201,
+      headers: corsHeaders,
       body: JSON.stringify(wallet),
     };
   }
@@ -66,6 +82,7 @@ export const lambdaHandler = async (event) => {
     if (!walletId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ message: "walletId is required" }),
       };
     }
@@ -82,6 +99,7 @@ export const lambdaHandler = async (event) => {
     if (!result.Item) {
       return {
         statusCode: 404,
+        headers: corsHeaders,
         body: JSON.stringify({ message: "Wallet not found" }),
       };
     }
@@ -95,12 +113,14 @@ export const lambdaHandler = async (event) => {
 
     return {
       statusCode: 200,
+      headers: corsHeaders,
       body: JSON.stringify(wallet),
     };
   }
 
   return {
     statusCode: 405,
+    headers: corsHeaders,
     body: JSON.stringify({ message: "Method Not Allowed" }),
   };
 };
