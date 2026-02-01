@@ -1,20 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  BalanceGate
+Description: BalanceGate – Serverless Wallet API
 
-  BalanceGate – Serverless Wallet API
-  
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 10
   Api:
-    Auth:
-      ApiKeyRequired: true
+    Cors:
+      AllowMethods: "'OPTIONS,GET,POST'"
+      AllowHeaders: "'Content-Type,Authorization,x-api-key'"
+      AllowOrigin: "'*'"
+
 Resources:
   WalletFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
       Handler: app.lambdaHandler
@@ -28,38 +27,37 @@ Resources:
         Variables:
           WALLET_TABLE: WalletsTable
       Events:
-        createWallet:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        CreateWallet:
+          Type: Api
           Properties:
             Path: /wallet
             Method: POST
             Auth:
               ApiKeyRequired: true
 
-        getWallet:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        GetWallet:
+          Type: Api
           Properties:
             Path: /wallet/{walletId}
             Method: GET
             Auth:
               ApiKeyRequired: true
 
-        walletOptions:
+        ListWallets:
           Type: Api
           Properties:
-            Path: /wallet
-            Method: OPTIONS
+            Path: /wallets
+            Method: GET
             Auth:
-              ApiKeyRequired: false
+              ApiKeyRequired: true
 
-        walletIdOptions:
+        WalletTransaction:
           Type: Api
           Properties:
-            Path: /wallet/{walletId}
-            Method: OPTIONS
+            Path: /wallet/{walletId}/transaction
+            Method: POST
             Auth:
-              ApiKeyRequired: false
-
+              ApiKeyRequired: true
 
   WalletsTable:
     Type: AWS::Serverless::SimpleTable
