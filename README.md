@@ -1,53 +1,251 @@
 # BalanceGate
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+**Secure Serverless Wallet Platform**
 
-- hello-world - Code for the application's Lambda function.
-- events - Invocation events that you can use to invoke the function.
-- hello-world/tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
+BalanceGate is a full-stack, serverless wallet application that allows authenticated users to create and manage wallets, view balances, and perform secure credit/debit transactions.
+It is built using AWS serverless services and a modern Next.js frontend, following real-world security and scalability best practices.
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+**Live Demo**: https://balance-gate.vercel.app  
+**Backend API**: AWS API Gateway + Lambda
 
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
+---
 
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+## Features
 
-## Deploy the sample application
+### Authentication & Security
+- User authentication via AWS Cognito (OIDC / JWT)
+- API protection using JWT + API Gateway API Keys
+- Ownership enforcement (users can only access their own wallets)
+- CORS-safe, production-ready API configuration
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+### Wallet Management
+- Create multiple wallets per user
+- Assign wallet names and currencies
+- View all wallets owned by the logged-in user
+- Fetch individual wallet details securely
 
-To use the SAM CLI, you need the following tools.
+### Transactions
+- Credit and debit wallet balances
+- Atomic balance updates using DynamoDB conditional expressions
+- Prevents negative balances
+- Safe under concurrent requests
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 20](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+### Frontend Dashboard
+- Built with Next.js (App Router)
+- Clean wallet cards UI
+- Wallet detail view with live balance updates
+- Auth-aware navigation bar (Sign in / Sign out)
 
-To build and deploy your application for the first time, run the following in your shell:
+---
+
+## Architecture Overview
+
+```
+┌────────────┐     JWT / API Key     ┌──────────────┐
+│  Frontend  │ ───────────────────▶ │ API Gateway  │
+│  Next.js   │                      └──────┬───────┘
+│  (Vercel)  │                             │
+└────────────┘                             ▼
+                                      ┌──────────────┐
+                                      │ AWS Lambda   │
+                                      │ Wallet API   │
+                                      └──────┬───────┘
+                                             ▼
+                                      ┌──────────────┐
+                                      │ DynamoDB     │
+                                      │ WalletsTable │
+                                      └──────────────┘
+                                             ▲
+                                      ┌──────────────┐
+                                      │ AWS Cognito  │
+                                      │ User Pool    │
+                                      └──────────────┘
+```
+
+---
+
+## Tech Stack
+
+### Frontend
+- **Next.js** (App Router)
+- **React** 19
+- **Tailwind CSS** 4
+- **react-oidc-context**
+- Deployed on **Vercel**
+
+### Backend
+- **AWS Lambda** (Node.js 20)
+- **AWS API Gateway** (REST API)
+- **AWS DynamoDB**
+- **AWS Cognito**
+- **AWS SAM** (Infrastructure as Code)
+
+---
+
+## Project Structure
+
+```
+BalanceGate/
+├─ frontend/                 # Next.js frontend
+│  ├─ app/
+│  │  ├─ wallets/            # Wallet list & details
+│  │  ├─ create/             # Create wallet page
+│  │  ├─ fetch/              # Fetch wallet page
+│  │  ├─ components/         # Reusable components
+│  │  │  ├─ Navbar.tsx
+│  │  │  └─ WalletCard.tsx
+│  │  ├─ auth-provider.tsx
+│  │  ├─ layout.tsx
+│  │  └─ page.tsx
+│  └─ public/
+│
+├─ src/                      # Lambda source
+│  ├─ app.mjs                # Main handler
+│  ├─ package.json
+│  └─ tests/
+│     └─ unit/
+│        └─ test-handler.mjs
+│
+├─ events/                   # Test event payloads
+│  └─ event.json
+│
+├─ template.yaml             # AWS SAM template
+├─ samconfig.toml            # SAM CLI configuration
+└─ README.md
+```
+
+---
+
+## API Endpoints
+
+**All endpoints require:**
+- `Authorization: Bearer <JWT>`
+- `x-api-key: <API_KEY>`
+
+| Method | Endpoint                           | Description              |
+|--------|------------------------------------|--------------------------|
+| POST   | `/wallet`                          | Create a new wallet      |
+| GET    | `/wallet/{walletId}`               | Get wallet details       |
+| GET    | `/wallets`                         | List user wallets        |
+| POST   | `/wallet/{walletId}/transaction`   | Credit / debit wallet    |
+
+---
+
+## Security Design
+
+- **JWT validation** ensures authenticated access
+- **User ownership checks** prevent cross-user access
+- **Atomic DynamoDB updates** prevent race conditions
+- **API key enforcement** adds an extra protection layer
+- **CORS handled** via SAM Globals (no manual OPTIONS hacks)
+
+---
+
+## Local Development
+
+### Backend
+
+```bash
+sam build
+sam local start-api
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Create a `.env.local` file in `frontend/`:
+
+```env
+NEXT_PUBLIC_API_KEY=your_api_gateway_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+---
+
+## Testing
+
+### Backend Tests
+
+The backend includes comprehensive unit tests using **Mocha** and **Chai**.
+
+**Test Coverage:**
+- CORS preflight handling
+- JWT authentication and authorization
+- Wallet creation (with custom and default values)
+- Transaction validation
+- Error handling for invalid requests
+- Method not allowed scenarios
+
+**Run tests:**
+
+```bash
+cd src
+npm install
+npm test
+```
+
+**Test Location:** `src/tests/unit/test-handler.mjs`
+
+---
+
+## Deployment
+
+### Backend
+
+Deployed using **AWS SAM**:
 
 ```bash
 sam build
 sam deploy --guided
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
+Infrastructure managed via CloudFormation.
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+### Frontend
+
+Deployed on **Vercel**:
+- Connected to AWS backend via environment variables
+- Cognito callback URLs configured for production domain
+
+---
+
+## Key Engineering Decisions
+
+- Used **DynamoDB conditional updates** for safe balance handling
+- Avoided client-side balance calculations
+- Used **plural resource routing** (`/wallets`) for REST clarity
+- Separated frontend routes from backend API paths
+- Followed **least-privilege IAM policies**
+
+---
+
+## Future Improvements
+
+- Transaction history table & UI
+- Pagination for wallet lists
+- Replace Scan with Query + GSI on userId
+- Role-based access (admin / user)
+- Integration tests with DynamoDB local
+- End-to-end frontend tests
+
+---
+
+## Author
+
+**Ravija Dulnath**  
+Full-Stack Developer | Serverless & Cloud Enthusiast
+
+---
+
+## Final Notes
+
+BalanceGate is designed as a **realistic production-style project**, not a demo toy.
+It demonstrates secure authentication, backend correctness, frontend UX, and cloud-native architecture — making it suitable for technical interviews and portfolio review.
 
 You can find your API Gateway Endpoint URL in the output values displayed after deployment.
 
