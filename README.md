@@ -5,7 +5,7 @@
 BalanceGate is a full-stack, serverless wallet application that allows authenticated users to create and manage wallets, view balances, and perform secure credit/debit transactions.
 It is built using AWS serverless services and a modern Next.js frontend, following real-world security and scalability best practices.
 
-**Live Demo**: https://balance-gate.vercel.app  
+**Live Demo**: https://balance-gate.vercel.app
 **Backend API**: AWS API Gateway + Lambda
 
 ---
@@ -13,24 +13,28 @@ It is built using AWS serverless services and a modern Next.js frontend, followi
 ## Features
 
 ### Authentication & Security
+
 - User authentication via AWS Cognito (OIDC / JWT)
 - API protection using JWT + API Gateway API Keys
 - Ownership enforcement (users can only access their own wallets)
 - CORS-safe, production-ready API configuration
 
 ### Wallet Management
+
 - Create multiple wallets per user
 - Assign wallet names and currencies
 - View all wallets owned by the logged-in user
 - Fetch individual wallet details securely
 
 ### Transactions
+
 - Credit and debit wallet balances
 - Atomic balance updates using DynamoDB conditional expressions
 - Prevents negative balances
 - Safe under concurrent requests
 
 ### Frontend Dashboard
+
 - Built with Next.js (App Router)
 - Clean wallet cards UI
 - Wallet detail view with live balance updates
@@ -67,6 +71,7 @@ It is built using AWS serverless services and a modern Next.js frontend, followi
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js** (App Router)
 - **React** 19
 - **Tailwind CSS** 4
@@ -74,6 +79,7 @@ It is built using AWS serverless services and a modern Next.js frontend, followi
 - Deployed on **Vercel**
 
 ### Backend
+
 - **AWS Lambda** (Node.js 20)
 - **AWS API Gateway** (REST API)
 - **AWS DynamoDB**
@@ -119,15 +125,16 @@ BalanceGate/
 ## API Endpoints
 
 **All endpoints require:**
+
 - `Authorization: Bearer <JWT>`
 - `x-api-key: <API_KEY>`
 
-| Method | Endpoint                           | Description              |
-|--------|------------------------------------|--------------------------|
-| POST   | `/wallet`                          | Create a new wallet      |
-| GET    | `/wallet/{walletId}`               | Get wallet details       |
-| GET    | `/wallets`                         | List user wallets        |
-| POST   | `/wallet/{walletId}/transaction`   | Credit / debit wallet    |
+| Method | Endpoint                           | Description           |
+| ------ | ---------------------------------- | --------------------- |
+| POST   | `/wallet`                        | Create a new wallet   |
+| GET    | `/wallet/{walletId}`             | Get wallet details    |
+| GET    | `/wallets`                       | List user wallets     |
+| POST   | `/wallet/{walletId}/transaction` | Credit / debit wallet |
 
 ---
 
@@ -174,6 +181,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 The backend includes comprehensive unit tests using **Mocha** and **Chai**.
 
 **Test Coverage:**
+
 - CORS preflight handling
 - JWT authentication and authorization
 - Wallet creation (with custom and default values)
@@ -209,6 +217,7 @@ Infrastructure managed via CloudFormation.
 ### Frontend
 
 Deployed on **Vercel**:
+
 - Connected to AWS backend via environment variables
 - Cognito callback URLs configured for production domain
 
@@ -237,17 +246,10 @@ Deployed on **Vercel**:
 
 ## Author
 
-**Ravija Dulnath**  
+**Ravija Dulnath**
 Full-Stack Developer | Serverless & Cloud Enthusiast
 
 ---
-
-## Final Notes
-
-BalanceGate is designed as a **realistic production-style project**, not a demo toy.
-It demonstrates secure authentication, backend correctness, frontend UX, and cloud-native architecture — making it suitable for technical interviews and portfolio review.
-
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
 
 ## Use the SAM CLI to build and test locally
 
@@ -286,6 +288,7 @@ The SAM CLI reads the application template to determine the API's routes and the
 ```
 
 ## Add a resource to your application
+
 The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
 
 ## Fetch, tail, and filter Lambda function logs
